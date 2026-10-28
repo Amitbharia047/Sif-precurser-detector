@@ -1,0 +1,70 @@
+{
+  "model_architecture": "DistilBERT Sequence Classifier (distilbert-base-uncased)",
+  "framework": "Hugging Face Transformers / PyTorch 2.2.2",
+  "device_used": "mps",
+  "training_timestamp": "2026-10-22 14:46:07 UTC",
+  "training_duration_seconds": 27.87,
+  "dataset_type": "Curated Workplace Incident SIF Precursor Benchmark",
+  "labeling_methodology": "Campbell Institute / DEKRA SIF Criteria: A report is labeled as a SIF precursor (1) if high-energy hazard exposure occurred in the absence or failure of a primary direct control barrier, with realistic potential for fatality or permanent life-altering injury. Non-precursor reports (0) describe low-energy minor events with zero fatality potential.",
+  "dataset_stats": {
+    "total_samples": 130,
+    "train_samples": 90,
+    "val_samples": 20,
+    "test_samples": 20,
+    "sif_precursor_count": 76,
+    "non_sif_count": 54,
+    "sif_percentage": 58.5
+  },
+  "distilbert_metrics": {
+    "accuracy": 0.95,
+    "precision": 1.0,
+    "recall": 0.9167,
+    "f1_score": 0.9565,
+    "confusion_matrix": {
+      "true_negative": 8,
+      "false_positive": 0,
+      "false_negative": 1,
+      "true_positive": 11
+    },
+    "training_history": [
+      {
+        "epoch": 1,
+        "train_loss": 0.6699,
+        "val_accuracy": 0.6,
+        "val_f1": 0.75
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.5204,
+        "val_accuracy": 0.8,
+        "val_f1": 0.8571
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.3389,
+        "val_accuracy": 0.85,
+        "val_f1": 0.88
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.2425,
+        "val_accuracy": 0.8,
+        "val_f1": 0.8333
+      }
+    ]
+  },
+  "baseline_comparison": {
+    "baseline_model": "TF-IDF (1,2 ngrams) + Logistic Regression (C=1.2, balanced)",
+    "accuracy": 0.85,
+    "precision": 0.9091,
+    "recall": 0.8333,
+    "f1_score": 0.8696,
+    "confusion_matrix": {
+      "true_negative": 7,
+      "false_positive": 1,
+      "false_negative": 2,
+      "true_positive": 10
+    }
+  },
+  "disclaimer": "Academic & research demonstration project. Statistical predictions from DistilBERT indicate text semantic classification likelihoods, NOT certified industrial safety guarantees. Human Environmental Health & Safety (EHS) officer review is mandatory for all workplace decisions."
+}

@@ -1,0 +1,207 @@
+"""
+Safety Incident Dataset Generator & Labeling Protocol
+
+Labeling Methodology (Campbell Institute / DEKRA SIF Criteria):
+1. Target Label: is_sif_precursor (1 = Potential SIF Precursor, 0 = Non-Precursor)
+2. Criteria for Label 1 (SIF Precursor):
+   - High-Energy Hazard Exposure: Gravity (>4ft elevation), Hazardous Electrical (>50V / arc flash),
+     Mechanical / In-running nip point, Chemical / Toxic / Pressurized vessel, Heavy mobile equipment,
+     Confined space atmosphere, Trench / Cave-in.
+   - Control Barrier Failure / Absence: Direct primary barrier missing, damaged, bypassed, or not applied
+     (e.g., fall arrest unhooked, LOTO not performed, interlock jumpered, machine guard absent, air not tested).
+   - Serious Injury or Fatality (SIF) Potential: Realistic potential for life-altering injury or fatality,
+     regardless of whether severe harm actually occurred in the event.
+3. Criteria for Label 0 (Non-Precursor):
+   - Low-energy incident or superficial outcome with no credible path to serious injury or fatality
+     (e.g., minor paper cuts, low-velocity bumps, ergonomics, slip without falling, non-hazardous property nuisance).
+"""
+
+import csv
+import os
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+os.makedirs(DATA_DIR, exist_ok=True)
+CSV_PATH = os.path.join(DATA_DIR, 'safety_incidents.csv')
+
+INCIDENTS = [
+    # =========================================================================
+    # --- SIF PRECURSORS (Label = 1) ---
+    # =========================================================================
+
+    # 1. Working at Height / Fall Hazard
+    ("Worker on 24-foot extension ladder leaned over to reach gutter bracket without tying off. Ladder feet kicked out on slick asphalt; worker managed to grab roof edge.", "Construction", "Working at Height", 1),
+    ("Employee observed working on edge of 3rd floor open deck without fall harness or safety railing installed.", "Construction", "Working at Height", 1),
+    ("Subcontractor climbed onto top railing of scissor lift at 18 feet elevation to install overhead HVAC ducting without personal fall arrest.", "Construction", "Working at Height", 1),
+    ("Scaffolding plank shifted on 4th level platform when worker stepped on unbolted end. Worker slipped but caught cross-brace at 30 feet elevation.", "Construction", "Working at Height", 1),
+    ("Technician climbed atop industrial grain silo 45 feet high during heavy wind gusts with unattached safety lanyard.", "Agriculture/Storage", "Working at Height", 1),
+    ("Operator stood on top rung of 12-foot step ladder while tensioning overhead crane cable without secondary tie-off point.", "Manufacturing", "Working at Height", 1),
+    ("Ironworker traversed unplanked steel beam 35 feet above concrete foundation without static line or anchored harness.", "Construction", "Working at Height", 1),
+    ("Maintenance employee bypassed scissor lift gate latch with zip-tie while elevating to 25 feet to reach high-bay warehouse lighting.", "Logistics", "Working at Height", 1),
+    ("Worker slipped on ice while walking along unguarded catwalk 20 feet above chemical processing tanks.", "Chemical/Refinery", "Working at Height", 1),
+    ("Roofer unhooked safety harness from anchor to move supplies across steep pitched commercial metal roof with 30-foot drop.", "Construction", "Working at Height", 1),
+    ("Painter used unsecured wooden planks spanning 16-foot stairwell void without guardrails or safety nets below.", "Construction", "Working at Height", 1),
+    ("HVAC installer leaned out over 5th floor elevator shaft opening without lifelines while rigging duct hoist.", "Construction", "Working at Height", 1),
+    ("Solar panel installer slipped on wet metal roof at 22 feet height; safety harness arrested fall 2 feet above lower concrete parapet.", "Renewable Energy", "Working at Height", 1),
+    ("Operator climbed atop rail car dome without fall restraint line while positioning loading arm during thunderstorm.", "Logistics", "Working at Height", 1),
+
+    # 2. Lockout / Tagout (LOTO) & Hazardous Energy
+    ("Mechanic reached into jammed robotic palletizer cell to free stuck cardboard box while optical interlock was overridden with reflector tape.", "Manufacturing", "Lockout/Tagout", 1),
+    ("Operator opened hydraulic press access door and placed arm between dies to clear scrap without applying lockout tagout lock.", "Manufacturing", "Lockout/Tagout", 1),
+    ("Maintenance worker loosened high-pressure steam valve flange before isolating upstream header; blast of residual steam escaped missing face.", "Chemical/Refinery", "Hazardous Energy / LOTO", 1),
+    ("Electrician worked inside live 480V motor control center cubicle to torque lugs without verifying zero energy state or arc-flash PPE.", "Utilities", "Lockout/Tagout", 1),
+    ("Millwright climbed onto energized conveyor belt to clear jam without isolating main 40HP motor breaker.", "Mining", "Lockout/Tagout", 1),
+    ("Technician bypassed safety interlock switch on plastic injection molding machine to observe clamp closure speed.", "Manufacturing", "Lockout/Tagout", 1),
+    ("Contractor removed hydraulic hose on earthmover with boom elevated and unblocked; boom dropped 4 feet instantly.", "Construction", "Hazardous Energy / LOTO", 1),
+    ("Maintenance team opened ammonia refrigeration line believing it was purged; trapped liquid ammonia sprayed out when bolts loosened.", "Food Processing", "Hazardous Energy / LOTO", 1),
+    ("Operator reset circuit breaker on 600V stamping press while technician was still inspecting drive shaft bearings.", "Manufacturing", "Lockout/Tagout", 1),
+    ("Worker reached into auger feed hopper to retrieve dropped walkie-talkie while feed screw was still rotating under power.", "Agriculture", "Lockout/Tagout", 1),
+    ("Technician serviced 2000-PSI hydraulic accumulator without depressurizing manifold; high pressure fluid pinhole spray penetrated heavy glove.", "Heavy Machinery", "Hazardous Energy / LOTO", 1),
+    ("Boiler technician entered combustion chamber while fuel gas line was only hand-valved without blind flange or lock.", "Utilities", "Hazardous Energy / LOTO", 1),
+    ("Pneumatic transfer valve cycled automatically while technician was aligning butterfly gate with fingers in valve throat.", "Chemical/Refinery", "Hazardous Energy / LOTO", 1),
+
+    # 3. Machine Guarding & In-Running Nip Points
+    ("Lathe operator operating without chuck guard; loose sweatshirt sleeve snagged on rotating spindle before emergency stop pulled.", "Manufacturing", "Machine Guarding", 1),
+    ("Conveyor belt drive pulley missing wire mesh nip guard; operator's glove touched inrunning pinch point while sweeping floor.", "Manufacturing", "Machine Guarding", 1),
+    ("Table saw used with anti-kickback pawls and blade guard removed; oak board kicked back violently across shop at chest height.", "Woodworking", "Machine Guarding", 1),
+    ("Shear blade interlock bypassed during high volume sheet metal cutting shift; operator's fingers within two inches of cutting plane.", "Manufacturing", "Machine Guarding", 1),
+    ("Stamping press light curtain disabled due to misalignment; operator feeding blanks by hand within 6 inches of 100-ton ram.", "Manufacturing", "Machine Guarding", 1),
+    ("Industrial shredder run with intake safety hopper removed allowing direct line-of-sight access to rotating dual cutting rotors.", "Recycling", "Machine Guarding", 1),
+    ("High-speed spinning shaft coupling running without protective metal shroud in narrow pump maintenance corridor.", "Chemical/Refinery", "Machine Guarding", 1),
+    ("Centrifugal blower casing inspection port left wide open while impeller was spinning at 3600 RPM without screen.", "Manufacturing", "Machine Guarding", 1),
+    ("Textile calendar machine intake rollers operating without trip wire or finger guard; cloth feeding by hand.", "Textiles", "Machine Guarding", 1),
+    ("Metal bandsaw running with 14 inches of blade exposed above guide arm while cutting structural angle iron.", "Fabrication", "Machine Guarding", 1),
+
+    # 4. Confined Space & Hazardous Atmosphere
+    ("Employee entered empty solvent storage tank through bottom manway without atmospheric air testing or entry permit.", "Chemical/Refinery", "Confined Space", 1),
+    ("Two workers descended into 15-foot deep sanitary sewer manhole to retrieve sewer camera without blower ventilation or 4-gas detector.", "Municipal", "Confined Space", 1),
+    ("Welder entered inside baffled steel barge compartment with argon torch without continuous oxygen monitoring or standby attendant.", "Maritime", "Confined Space", 1),
+    ("Contractor crawled into storm drain pipe under active highway without tripod rescue retrieval winch or atmospheric check.", "Construction", "Confined Space", 1),
+    ("Operator leaned into nitrogen-purged reactor vessel to inspect catalyst bed without fresh-air breathing apparatus.", "Chemical/Refinery", "Confined Space", 1),
+    ("Technician entered underground electrical vault filled with 2 feet of water and decaying organic matter without gas detector.", "Utilities", "Confined Space", 1),
+    ("Cleaning crew entered fermentation tank with residual carbon dioxide buildup; first worker experienced immediate dizziness and fell.", "Brewery", "Confined Space", 1),
+    ("Worker climbed inside wet well lift station to free jammed float switch without harness, ventilation, or entry supervisor sign-off.", "Wastewater", "Confined Space", 1),
+    ("Contractor entered grain storage bin with 10 feet of loose corn without safety harness or observer outside bin hatch.", "Agriculture", "Confined Space", 1),
+
+    # 5. Heavy Mobile Equipment & Pedestrian Interactions
+    ("Forklift operator driving with elevated mast and double-stacked pallet blind spot struck empty pedestrian guardrail next to walkway.", "Warehouse", "Mobile Equipment", 1),
+    ("Pedestrian order picker stepped into main forklift travel aisle around blind corner without sounding horn or high-vis vest; forklift swerved.", "Logistics", "Mobile Equipment", 1),
+    ("Articulated wheel loader backed up rapidly in staging yard with defective backup alarm; nearly crushed ground surveyor.", "Construction", "Mobile Equipment", 1),
+    ("Telehandler operator lifted 3-ton concrete pipe over occupied jobsite trailer contrary to designated exclusion perimeter.", "Construction", "Mobile Equipment", 1),
+    ("Forklift carrying oversized chemical IBC tote braked abruptly, tipping rear steering wheels 2 feet off floor near battery room.", "Chemical/Refinery", "Mobile Equipment", 1),
+    ("Dump truck backed into active trench area without spotter; edge collapsed under right rear tandem tires.", "Construction", "Mobile Equipment", 1),
+    ("Automated guided vehicle (AGV) safety bumper failed to stop vehicle when crossing employee pedestrian crosswalk.", "Warehouse", "Mobile Equipment", 1),
+    ("Yard switcher tractor moved shipping container chassis while chassis pins were unlocked and dock worker was inside trailer.", "Logistics", "Mobile Equipment", 1),
+    ("Excavator swung 360 degrees with counterweight brushing within 12 inches of worker standing in blind spot.", "Construction", "Mobile Equipment", 1),
+    ("Rough terrain forklift descended 15% gravel ramp with heavy bundle of rebar untethered, sliding off forks.", "Construction", "Mobile Equipment", 1),
+
+    # 6. Electrical Hazards & Arc Flash
+    ("Contractor drilled into concrete wall and severed energized 4160V feeder conduit; loud arc flash and fireball discharged.", "Construction", "Electrical", 1),
+    ("Electrician troubleshooting energized 480V transformer cabinet dropped metal screwdriver across exposed busbars causing arc blast.", "Utilities", "Electrical", 1),
+    ("Overhead crane boom swung within 6 feet of 34.5kV uninsulated utility transmission power line during tilt-up panel lift.", "Construction", "Electrical", 1),
+    ("Damaged extension cord outer jacket with exposed copper conductors submerged in puddle of water across high traffic shop floor.", "Manufacturing", "Electrical", 1),
+    ("Main distribution breaker failed to trip during short circuit; electrical panel emitted heavy smoke and molten copper spatter.", "Manufacturing", "Electrical", 1),
+    ("Worker touched metal conduit that had become energized due to improper grounding and insulation chafing inside pull box.", "Construction", "Electrical", 1),
+    ("Temporary generator 3-phase cam-lock connectors connected with reverse polarity under heavy inductive load.", "Entertainment/Staging", "Electrical", 1),
+
+    # 7. Trenching, Excavation & Ground Collapse
+    ("Three pipefitters working inside 9-foot deep trench with vertical soil walls without trench box shoring or egress ladder.", "Construction", "Trenching/Excavation", 1),
+    ("Excavation adjacent to commercial foundation wall showed 2-inch tension cracks at top of cut with workers working at bottom.", "Construction", "Trenching/Excavation", 1),
+    ("Heavy excavator operated within 2 feet of unshielded trench lip while plumbing crew was leveling bedding gravel 8 feet down.", "Construction", "Trenching/Excavation", 1),
+    ("Shoring jack failed on 12-foot trench wall causing 2 tons of wet clay to slump into pipe trench, trapping worker's lower body.", "Utilities", "Trenching/Excavation", 1),
+
+    # 8. Chemical / Fire / Pressurized Hazards
+    ("Hot work torch welding conducted adjacent to open drums of acetone without hot work permit or fire watch post.", "Manufacturing", "Chemical / Fire", 1),
+    ("Flammable solvent line rupture under 150 PSI sprayed aerosolized hexane mist across boiler room floor.", "Chemical/Refinery", "Chemical / Fire", 1),
+    ("Pressure relief valve on compressed air accumulator tank corroded shut; vessel gauge indicated 200% maximum allowable working pressure.", "Manufacturing", "Pressure Vessel", 1),
+    ("Toxic chlorine gas cylinder regulator leak detected in water treatment facility with inoperative emergency scrubber system.", "Water Utilities", "Chemical / Toxic", 1),
+    ("Sulfuric acid transfer hose burst under 80 PSI with operator wearing only standard safety glasses rather than full acid hood.", "Chemical/Refinery", "Chemical / Toxic", 1),
+
+    # 9. Suspended Loads & Rigging
+    ("Overhead gantry crane hoisted 8,000 lb steel mold using damaged synthetic sling with visible core fiber tears over workers.", "Manufacturing", "Rigging / Suspended Load", 1),
+    ("Crane hook safety latch missing; spreader bar shackle disengaged from hook tip during mid-air 15-foot turn.", "Construction", "Rigging / Suspended Load", 1),
+    ("Rigging chain snapped while lifting 5-ton structural I-beam; beam crashed onto unoccupied flatbed trailer below.", "Fabrication", "Rigging / Suspended Load", 1),
+    ("Mobile crane set outriggers on uncompacted backfill without cribbing pads; left outrigger punched 3 feet into ground during load swing.", "Construction", "Rigging / Suspended Load", 1),
+
+
+    # =========================================================================
+    # --- NON-SIF INCIDENTS (Label = 0) ---
+    # =========================================================================
+
+    # 1. Minor First Aid & Minor Cuts
+    ("Employee received superficial paper cut to index finger while unboxing office stationery shipment; washed and applied adhesive bandage.", "Office/Admin", "Minor First Aid", 0),
+    ("Cardboard edge grazed worker's knuckle while opening packing box with scissors; treated with band-aid, returned to work immediately.", "Logistics", "Minor First Aid", 0),
+    ("Employee felt slight splinter in palm from rough wooden pallet during routine sorting; splinter removed with clean tweezers.", "Warehouse", "Minor First Aid", 0),
+    ("Clerk bumped shin against bottom filing cabinet drawer left open 4 inches; mild redness, no swelling or limping.", "Office/Admin", "Minor Contusion", 0),
+    ("Worker scratched forearm on edge of metal clipboard while reviewing inventory count sheets; antiseptic wipe applied.", "Warehouse", "Minor First Aid", 0),
+    ("Employee pricked finger on stapler while refilling desktop staple tray; band-aid provided from first aid kit.", "Office/Admin", "Minor First Aid", 0),
+    ("Slight skin irritation on wrist after wearing new brand of latex inspection gloves; washed with soap and swapped to nitrile.", "Healthcare/Lab", "Minor Skin Irritation", 0),
+    ("Worker bumped funny bone on conference room chair armrest while standing up; sensation subsided in 3 minutes.", "Office/Admin", "Minor Impact", 0),
+    ("Small droplet of dilute dishwashing soap splashed onto forearm while washing coffee mugs in breakroom; rinsed off with cold water.", "Facility Services", "Minor First Aid", 0),
+    ("Employee pulled staple from shipping manifest and scraped thumb fingernail; no bleeding, self-managed.", "Warehouse", "Minor First Aid", 0),
+    ("Supervisor caught lanyard on office coat rack hook when leaving cubicle; unhooked safely with zero strain.", "Office/Admin", "Minor Incident", 0),
+    ("Laboratory technician nicked corner of latex glove with plastic pipette tip; discarded glove, washed hands, replaced glove.", "Laboratory", "Minor Lab Incident", 0),
+    ("Assembly technician dropped small screw into parts tray and scratched cuticle retrieving it; applied small adhesive plaster.", "Manufacturing", "Minor First Aid", 0),
+
+    # 2. Slips, Trips & Missteps (No Fall / Zero Energy)
+    ("Worker slipped slightly on wet floor tile near water cooler in hallway; regained balance without falling or striking anything.", "Office/Admin", "Slip/Trip (No Fall)", 0),
+    ("Employee tripped on edge of rubber entrance floor mat; took a stumbling step and regained footing without injury.", "Commercial", "Slip/Trip (No Fall)", 0),
+    ("Operator stepped on small plastic pen cap on breakroom floor; twisted foot slightly, walked off with no discomfort.", "Manufacturing", "Slip/Trip (No Fall)", 0),
+    ("Technician brushed foot against computer power strip beneath desk; cord unplugged, zero injury.", "Office/Admin", "Minor Incident", 0),
+    ("Employee slipped on damp sidewalk approaching building turnstile on rainy morning; recovered balance, no injury.", "Corporate", "Slip/Trip (No Fall)", 0),
+    ("Worker briefly lost footing on gravel path outside security gate; caught handrail, resumed walking.", "Industrial Site", "Slip/Trip (No Fall)", 0),
+    ("Clerk stubbed toe against baseboard while walking through well-lit corridor; no bruise or limp noted.", "Office/Admin", "Minor Contusion", 0),
+    ("Employee took uneven stride transitioning from asphalt parking lot to concrete curb; caught balance, continued walking.", "Commercial", "Slip/Trip (No Fall)", 0),
+    ("Worker stepped on flat plastic packing band on warehouse floor; foot slid two inches, regained footing safely.", "Logistics", "Slip/Trip (No Fall)", 0),
+
+    # 3. Minor Ergonomic Discomfort & Muscle Fatigue
+    ("Employee reported mild neck stiffness after 6 hours of spreadsheet data entry at computer terminal; ergonomic monitor riser requested.", "Office/Admin", "Ergonomics", 0),
+    ("Warehouse associate noted slight lower back tightness after manually stacking 10 lightweight plastic shoe boxes (3 lbs each).", "Warehouse", "Ergonomics", 0),
+    ("Customer service agent reported mild eye strain from glare on computer monitor screen; anti-glare screen filter installed.", "Call Center", "Ergonomics", 0),
+    ("Assembly line worker experienced mild thumb fatigue after clicking button tags for 4 hours; rotated to packaging station.", "Manufacturing", "Ergonomics", 0),
+    ("Employee reported dull headache due to air conditioning thermostat being set too cold in conference room.", "Office/Admin", "Comfort/Environmental", 0),
+    ("Draftsman complained of wrist discomfort while using standard computer mouse; provided ergonomic vertical mouse.", "Engineering", "Ergonomics", 0),
+    ("Accounts payable clerk experienced shoulder tightness from holding telephone handset against shoulder; issued wireless headset.", "Office/Admin", "Ergonomics", 0),
+    ("Quality inspector noted mild eye fatigue after reviewing micro-circuit board solder joints under magnifying lamp for 3 hours.", "Electronics", "Ergonomics", 0),
+    ("Order picker reported mild calf muscle tiredness at end of 8-hour shift walking on concrete mezzanine.", "Logistics", "Ergonomics", 0),
+
+    # 4. Low-Energy Property, Housekeeping & Nuisances
+    ("Empty cardboard shipping carton fell from 3-foot shelf onto worker's steel-toed boot; zero pain or damage.", "Warehouse", "Dropped Object (Low Energy)", 0),
+    ("Plastic water bottle dropped from desk and rolled under filing cabinet; worker retrieved it without issue.", "Office/Admin", "Nuisance", 0),
+    ("Office chair caster wheel broke loose when employee stood up; employee remained standing, chair replaced.", "Office/Admin", "Facility/Furniture", 0),
+    ("Dust particle blew into groundskeeper's eye while sweeping sidewalk on breezy day; rinsed at eye wash station, normal eye exam.", "Facility Services", "Eye Irritation", 0),
+    ("Employee spilled lukewarm cup of herbal tea onto desk and paperwork; wiped dry with paper towels, no burn or scald.", "Office/Admin", "Spill (Non-Hazardous)", 0),
+    ("Hand sanitizer bottle pump leaked onto laminate counter top; wiped clean with microfiber towel.", "Office/Admin", "Housekeeping", 0),
+    ("Plastic safety goggles fogged up while walking into air-conditioned packing room from humid loading dock.", "Warehouse", "PPE Fogging", 0),
+    ("Janitor's cotton mop handle cracked during routine floor mopping; mop replaced from storage supply.", "Facility Services", "Equipment Wear", 0),
+    ("Minor squeak detected in conveyor belt idler roller bearing; maintenance technician scheduled grease lubrication for next shift.", "Manufacturing", "Preventive Maintenance", 0),
+    ("Empty plastic 5-gallon bucket blown across gravel parking lot by wind gust; retrieved and secured behind dumpster.", "Logistics", "Housekeeping", 0),
+    ("Thermal label printer jammed with paper roll in shipping department; cleared by operator without tools.", "Logistics", "Equipment Jam (De-energized)", 0),
+    ("Employee dropped metal badge onto carpeted lobby floor; picked up without consequence.", "Corporate", "Minor Drop", 0),
+    ("Worker noticed small dry water stain on ceiling tile in second floor hallway; reported to facility maintenance.", "Facility Services", "Facility Maintenance", 0),
+    ("Electric pencil sharpener motor overheated and shut down automatically on thermal overload protector.", "Office/Admin", "Appliance Nuisance", 0),
+    ("Dry erase marker stained employee's lab coat cuff while writing on scheduling whiteboard.", "Laboratory", "Cosmetic/Stain", 0),
+    ("Door draft caused conference room door to slam shut loudly during morning safety meeting.", "Corporate", "Noise/Nuisance", 0),
+    ("Plastic tape dispenser dropped onto linoleum floor, cracking plastic tape holder; replaced from office supplies.", "Logistics", "Office Item Drop", 0),
+    ("Employee felt light friction rub on heel from newly issued safety work boots during first day of use.", "Manufacturing", "Footwear Break-in", 0),
+    ("Worker reached across desk to unplug phone charger and felt slight shoulder stretch; normal mobility within seconds.", "Office/Admin", "Minor Muscle Stretch", 0),
+    ("Clean cardboard shipping box slid off cart onto floor with thud; contents unbroken, box re-stacked.", "Logistics", "Dropped Box (No Injury)", 0),
+    ("Vending machine coin return slot jammed with 25-cent coin in lunchroom; facilities technician cleared coin.", "Facility Services", "Vending Nuisance", 0),
+    ("Breakroom microwave turntable plate chipped along edge during cleaning; glass plate replaced.", "Office/Admin", "Facility/Kitchen", 0),
+    ("Employee dropped plastic badge lanyard into sink while washing hands; dried lanyard with hand dryer.", "Office/Admin", "Minor Nuisance", 0)
+]
+
+def generate_dataset():
+    with open(CSV_PATH, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(["description", "workplace_type", "hazard_category", "is_sif_precursor"])
+        for row in INCIDENTS:
+            writer.writerow(row)
+
+    sif_count = sum(1 for r in INCIDENTS if r[3] == 1)
+    non_sif_count = len(INCIDENTS) - sif_count
+    print(f"Generated {len(INCIDENTS)} safety incident records at {CSV_PATH}")
+    print(f"  - Potential SIF Precursors (Class 1): {sif_count} ({sif_count/len(INCIDENTS)*100:.1f}%)")
+    print(f"  - Non-SIF Incidents (Class 0): {non_sif_count} ({non_sif_count/len(INCIDENTS)*100:.1f}%)")
+
+if __name__ == '__main__':
+    generate_dataset()
