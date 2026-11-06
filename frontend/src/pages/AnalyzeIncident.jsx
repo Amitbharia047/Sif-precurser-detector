@@ -18,7 +18,7 @@ import {
   Layers,
   Eye
 } from 'lucide-react';
-import { getApiUrl } from '../config/api';
+import { analyzeIncident } from '../config/api';
 
 function renderAnnotatedText(text, entities) {
   if (!text) return null;
@@ -159,21 +159,12 @@ export default function AnalyzeIncident({ onIncidentAnalyzed, onNavigateToHistor
     setError(null);
 
     try {
-      const response = await fetch(getApiUrl('/api/analyze'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: description.trim(),
-          workplace_type: workplaceType,
-          hazard_category: hazardCategory,
-          incident_date: incidentDate
-        })
+      const data = await analyzeIncident({
+        description: description.trim(),
+        workplace_type: workplaceType,
+        hazard_category: hazardCategory,
+        incident_date: incidentDate
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `Server responded with status ${response.status}`);
-      }
 
       setAnalysisResult(data);
       if (onIncidentAnalyzed) {

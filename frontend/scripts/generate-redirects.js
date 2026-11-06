@@ -23,20 +23,17 @@ if (backendUrl) {
 /*  /index.html  200
 `;
   console.log(`[Netlify Redirects] Configured /api/* proxy -> ${backendUrl}/api/:splat`);
-} else if (!fs.existsSync(redirectsFile)) {
-  content = `# Netlify API Proxy and Single Page Application rewrite rules
-# Update the target URL below to your deployed backend (e.g. Render, Railway, Fly.io)
-# Or set BACKEND_URL in Netlify's Environment Variables during build.
-/api/*  https://sif-precursor-detector-backend.onrender.com/api/:splat  200!
+} else {
+  // If no live backend URL is provided, serve SPA routes without proxying to dead domains.
+  // The built-in client safety engine handles API requests gracefully.
+  content = `# Netlify SPA Fallback
+# Set BACKEND_URL in Netlify's Environment Variables to proxy /api/* to your live Python backend.
 /*  /index.html  200
 `;
-  console.log('[Netlify Redirects] Generated default public/_redirects');
+  console.log('[Netlify Redirects] No BACKEND_URL provided. Operating with Client-Side Safety Engine fallback.');
 }
 
-if (content) {
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
-  }
-  fs.writeFileSync(redirectsFile, content, 'utf-8');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
 }
-
+fs.writeFileSync(redirectsFile, content, 'utf-8');

@@ -14,7 +14,7 @@ import {
   Wrench,
   BookOpen
 } from 'lucide-react';
-import { getApiUrl } from '../config/api';
+import { fetchModelInfo as apiFetchModelInfo } from '../config/api';
 
 export default function AboutModel() {
   const [modelInfo, setModelInfo] = useState(null);
@@ -24,9 +24,7 @@ export default function AboutModel() {
   const fetchModelInfo = async () => {
     setLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/model-info'));
-      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetchModelInfo();
       setModelInfo(data);
     } catch (err) {
       setError(err.message || 'Failed to load model metrics');

@@ -6,7 +6,11 @@ import IncidentHistory from './pages/IncidentHistory';
 import AboutModel from './pages/AboutModel';
 import IncidentDetailModal from './components/IncidentDetailModal';
 import { ShieldCheck, Plus, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { getApiUrl } from './config/api';
+import { 
+  fetchDashboardMetrics as apiGetDashboard, 
+  updateIncidentStatus as apiUpdateStatus, 
+  deleteIncident as apiDeleteIncident 
+} from './config/api';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -28,9 +32,7 @@ export default function App() {
   const fetchDashboardMetrics = async () => {
     try {
       setLoadingDashboard(true);
-      const res = await fetch(getApiUrl('/api/dashboard'));
-      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-      const data = await res.json();
+      const data = await apiGetDashboard();
       setDashboardData(data);
     } catch (err) {
       console.error("Failed to load dashboard metrics:", err);
@@ -46,13 +48,8 @@ export default function App() {
 
   const handleStatusChange = async (incidentId, newStatus) => {
     try {
-      const res = await fetch(getApiUrl(`/api/incidents/${incidentId}/status`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (!res.ok) throw new Error("Failed to update status on server");
-      const data = await res.json();
+      const data = await apiUpdateStatus(incidentId, newStatus);
+      if (!data || data.success === false) throw new Error("Failed to update status");
 
       // Refresh dashboard metrics
       fetchDashboardMetrics();
@@ -73,10 +70,8 @@ export default function App() {
 
   const handleDeleteIncident = async (incidentId) => {
     try {
-      const res = await fetch(getApiUrl(`/api/incidents/${incidentId}`), {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error("Failed to delete incident on server");
+      const data = await apiDeleteIncident(incidentId);
+      if (!data || data.success === false) throw new Error("Failed to delete incident");
 
       fetchDashboardMetrics();
       setHistoryRefreshKey((prev) => prev + 1);

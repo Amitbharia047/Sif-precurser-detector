@@ -13,7 +13,7 @@ import {
   Download,
   FileSpreadsheet
 } from 'lucide-react';
-import { getApiUrl } from '../config/api';
+import { fetchIncidents as apiFetchIncidents } from '../config/api';
 
 export default function IncidentHistory({ 
   onViewIncident, 
@@ -36,15 +36,12 @@ export default function IncidentHistory({
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (search.trim()) params.append('search', search.trim());
-      if (riskFilter) params.append('risk', riskFilter);
-      if (statusFilter) params.append('status', statusFilter);
-      if (sifFilter !== '') params.append('sif', sifFilter);
-
-      const res = await fetch(getApiUrl(`/api/incidents?${params.toString()}`));
-      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetchIncidents({
+        search: search.trim(),
+        risk: riskFilter,
+        status: statusFilter,
+        sif: sifFilter
+      });
       setIncidents(data);
     } catch (err) {
       setError(err.message || 'Failed to load incident history');

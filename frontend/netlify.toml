@@ -4,18 +4,8 @@
   publish = "dist"
   command = "npm run build"
 
-# API Proxy: Rewrites all /api/* calls to your deployed Python backend
-# Replace the URL below with your actual deployed backend service (e.g., Render, Railway, Fly.io, AWS)
-[[redirects]]
-  from = "/api/*"
-  to = "https://sif-precursor-detector-backend.onrender.com/api/:splat"
-  status = 200
-  force = true
-  headers = {X-From = "Netlify"}
-
 # Single Page Application (SPA) catch-all: Prevents 404 on page reloads
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-

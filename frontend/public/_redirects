@@ -1,7 +1,3 @@
-# Netlify API Proxy Rule
-# Forwards /api/* requests from the Netlify static frontend to the live Python backend
-# Set BACKEND_URL in Netlify's Environment Variables during build or update the URL below:
-/api/*  https://sif-precursor-detector-backend.onrender.com/api/:splat  200!
-
-# SPA Fallback Rule (prevents 404s when navigating or refreshing deep client routes)
+# Netlify SPA Fallback
+# Set BACKEND_URL in Netlify's Environment Variables to proxy /api/* to your live Python backend.
 /*  /index.html  200
