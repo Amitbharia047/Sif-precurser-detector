@@ -14,6 +14,7 @@ import {
   Wrench,
   BookOpen
 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 export default function AboutModel() {
   const [modelInfo, setModelInfo] = useState(null);
@@ -23,7 +24,7 @@ export default function AboutModel() {
   const fetchModelInfo = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/model-info');
+      const res = await fetch(getApiUrl('/api/model-info'));
       if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
       const data = await res.json();
       setModelInfo(data);

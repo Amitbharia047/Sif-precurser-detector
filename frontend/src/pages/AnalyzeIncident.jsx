@@ -18,6 +18,7 @@ import {
   Layers,
   Eye
 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 function renderAnnotatedText(text, entities) {
   if (!text) return null;
@@ -158,7 +159,7 @@ export default function AnalyzeIncident({ onIncidentAnalyzed, onNavigateToHistor
     setError(null);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch(getApiUrl('/api/analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

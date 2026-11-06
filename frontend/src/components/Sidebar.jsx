@@ -9,14 +9,18 @@ import {
   ShieldAlert, 
   Activity 
 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 export default function Sidebar({ currentPage, setCurrentPage, collapsed, setCollapsed }) {
   const [modelStatus, setModelStatus] = React.useState('DistilBERT Active');
   const [deviceInfo, setDeviceInfo] = React.useState('MPS');
 
   React.useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.json())
+    fetch(getApiUrl('/api/health'))
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.deep_learning_active) {
           setModelStatus('DistilBERT Active');

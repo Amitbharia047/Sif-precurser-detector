@@ -13,6 +13,7 @@ import {
   Download,
   FileSpreadsheet
 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 export default function IncidentHistory({ 
   onViewIncident, 
@@ -41,7 +42,7 @@ export default function IncidentHistory({
       if (statusFilter) params.append('status', statusFilter);
       if (sifFilter !== '') params.append('sif', sifFilter);
 
-      const res = await fetch(`/api/incidents?${params.toString()}`);
+      const res = await fetch(getApiUrl(`/api/incidents?${params.toString()}`));
       if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
       const data = await res.json();
       setIncidents(data);

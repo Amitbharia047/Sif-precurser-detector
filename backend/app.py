@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
@@ -21,8 +22,30 @@ app = Flask(
     static_folder=FRONTEND_DIST if os.path.exists(FRONTEND_DIST) else None,
     static_url_path=""
 )
-# Enable CORS for local Vite dev server if running separately
-CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"])
+
+# Enable CORS for local Vite dev server and production deployments (e.g. Netlify)
+cors_env = os.environ.get('CORS_ORIGINS', '').strip()
+if cors_env == '*' or cors_env.lower() == 'all':
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+else:
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        re.compile(r"^https://[\w-]+\.netlify\.app$")
+    ]
+    if cors_env:
+        for origin in cors_env.split(','):
+            if origin.strip():
+                allowed_origins.append(origin.strip())
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": allowed_origins}},
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With"]
+    )
+
 METRICS_PATH = os.path.join(BASE_DIR, 'model', 'metrics.json')
 
 # Singleton NLP classifier loaded once on startup

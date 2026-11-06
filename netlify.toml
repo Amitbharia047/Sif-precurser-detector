@@ -1,0 +1,21 @@
+# Netlify Configuration for SIF Precursor Detector
+
+[build]
+  base = "frontend"
+  publish = "dist"
+  command = "npm run build"
+
+# API Proxy: Rewrites all /api/* calls to your deployed Python backend
+# Configure BACKEND_URL in Netlify's Environment Variables during build or update the URL below
+[[redirects]]
+  from = "/api/*"
+  to = "https://sif-precursor-detector-backend.onrender.com/api/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+
+# Single Page Application (SPA) catch-all: Prevents 404 on page reloads
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
